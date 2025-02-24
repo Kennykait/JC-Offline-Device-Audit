@@ -20,7 +20,16 @@ This repository contains **automated scripts** for:
 ## **📌 Configuration Variables**
 Before running the script, update the variables inside **`JumpCloudAudit.ps1`**.
 
-### **1️⃣ Required Variables**
+### ** Requirements**
+| Requirement | Description |
+|----------|-------------|
+| `GCP Service Account` | Used for Google Sheet creation and import |
+| `JumpCloud Service Account w API` | Used for JC query about offline devices |
+| `Python lib requirements` | Required libs : gspread; gspread-formatting; google-auth ;google-auth-oauthlib ;requests |
+| `HiBob Service Account` | HiBob Service Account with TimeOff scope |
+| `Slack Webhook` | Used for posting information into a specific Slack channel |
+
+### ** Required Variables**
 | Variable | Description |
 |----------|-------------|
 | `$APIKey` | **JumpCloud API Key** – [How to get it](https://jumpcloud.com/api-key) |
@@ -35,14 +44,6 @@ Before running the script, update the variables inside **`JumpCloudAudit.ps1`**.
 | `$GoogleSheetsIgnoreFetcher` | **Path to** `GoogleSheetsIgnoreFetcher.py` |
 | `$SlackWebhookURL` | **Slack Webhook URL** – [Set it up here](https://api.slack.com/messaging/webhooks) |
 | `$SlackChannel` | **Slack channel** where notifications should be sent |
-### ** Requiremenets**
-| Requirement | Description |
-|----------|-------------|
-| `GCP Service Account` | Used for Google Sheet creation and import |
-| `JumpCloud Service Account w API` | Used for JC query about offline devices |
-| `Python lib requirements` | Required libs : gspread; gspread-formatting; google-auth ;google-auth-oauthlib ;requests |
-| `HiBob Service Account` | HiBob Service Account with TimeOff scope |
-| `Slack Webhook` | Used for posting information into a specific Slack channel |
 ---
 ## **📌 Steps to Build**
 This section explains how to **set up the project on a new machine**.
