@@ -12,7 +12,7 @@ IGNORE_TAB_NAME = sys.argv[2]  # Tab Name for Ignore List
 
 # GCP Service Account json
 AUTOMATION_PATH = r"C:\Scripts" # Absolute path to the automation
-SERVICE_ACCOUNT_FILE = os.path.join(AUTOMATION_PATH, "Credenials", "service_account.json")
+SERVICE_ACCOUNT_FILE = os.path.join(AUTOMATION_PATH, "Credentials", "service_account.json")
 IGNORE_LIST_FILE = os.path.join(AUTOMATION_PATH, "Audit", "IgnoreList.json")
 
 # Google Sheets API Authentication
