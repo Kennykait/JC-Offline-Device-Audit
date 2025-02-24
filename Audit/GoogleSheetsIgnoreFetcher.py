@@ -10,8 +10,9 @@ GOOGLE_SHEET_ID = sys.argv[1]  # Google Sheet ID from PowerShell
 IGNORE_TAB_NAME = sys.argv[2]  # Tab Name for Ignore List
 
 # GCP Service Account json
-SERVICE_ACCOUNT_FILE = r"C:\Credentials\service_account.json"  # Update this path if needed
-IGNORE_LIST_FILE = r"C:\Audit\IgnoreList.json"  # Where the ignore list will be saved
+AutomationPath = "C:\Scripts\" # Absolute path to the automation
+SERVICE_ACCOUNT_FILE = r"$AutomationPath\Credentials\service_account.json"  # Update this path if needed
+IGNORE_LIST_FILE = r"$AutomationPath\Audit\IgnoreList.json"  # Where the ignore list will be saved
 
 # Google Sheets API Authentication
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
