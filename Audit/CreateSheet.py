@@ -3,8 +3,8 @@ from googleapiclient.discovery import build
 from oauth2client.service_account import ServiceAccountCredentials
 
 # Variables
-AutomationPath = "C:\Scripts\" # Absolute path to the automation
-SERVICE_ACCOUNT_FILE = r"$AutomationPath\Credentials\service_account.json"  # Update path if needed. NOTE : r" is required for the script to threat it as a raw string.
+AUTOMATION_PATH = r"C:\Scripts" # Absolute path to the automation
+SERVICE_ACCOUNT_FILE = os.path.join(AUTOMATION_PATH, "Credentials", "service_account.json")
 USER_EMAIL = "admin@gmail.com"  # Your email (To send an invitation
 
 # Google API Scopes for Sheet creation.
