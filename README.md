@@ -35,10 +35,25 @@ Before running the script, update the variables inside **`JumpCloudAudit.ps1`**.
 | `$GoogleSheetsIgnoreFetcher` | **Path to** `GoogleSheetsIgnoreFetcher.py` |
 | `$SlackWebhookURL` | **Slack Webhook URL** – [Set it up here](https://api.slack.com/messaging/webhooks) |
 | `$SlackChannel` | **Slack channel** where notifications should be sent |
+### ** Requiremenets**
+| Requirement | Description |
+|----------|-------------|
+| `GCP Service Account` | Used for Google Sheet creation and import |
+| `JumpCloud Service Account w API` | Used for JC query about offline devices |
+| `Python lib requirements` | Required libs : gspread; gspread-formatting; google-auth ;google-auth-oauthlib ;requests |
+| `HiBob Service Account` | HiBob Service Account with TimeOff scope |
+| `Slack Webhook` | Used for posting information into a specific Slack channel |
+---
+## **📌 Steps to Build**
+This section explains how to **set up the project on a new machine**.
+### **Step 1: Clone the Repository**
+1. Open terminal
+2. Run "git clone https://github.com/Kennykait/JC-Offline-Device-Audit.git C:\Path-to-Dir"
+3. In Terminal cd the outputh directory for example "cd C:\Scripts\"
+4. Install Python dependacies using "pip install -r requirements.txt"
 
 ---
-
-## **📌 Setup Guide**
+## **📌Script Setup Guide**
 ### **1️⃣ Google Cloud Service Account (Google Sheets API)**
 #### **Step 1: Enable Google Sheets API**
 1. Go to **[Google Cloud Console](https://console.cloud.google.com/)**
@@ -69,3 +84,5 @@ Some organizations might have locked down the functionality to invite non-gmail 
 #### **Step 4: Populate Variables**
 Now that we have the bulk of required variables we can populate them and run the script in pwsh or use Jenkins to automate the job.
 For Jenkins i recommend using a Freestyle project with a 30 minute timeout (Depending on the size of your organization)
+
+
