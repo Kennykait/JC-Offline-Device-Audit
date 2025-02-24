@@ -7,7 +7,7 @@ from datetime import datetime
 sys.stdout.reconfigure(encoding='utf-8')
 
 # Variables
-AutomationPath = "C:\Scripts\" # Absolute path to the automation
+AUTOMATION_PATH = "C:\Scripts\" # Absolute path to the automation
 HIBOB_SERVICE_USER_ID = "NAME"
 HIBOB_TOKEN = "API"
 HIBOB_BASE_URL = "https://api.hibob.com/v1"
@@ -30,7 +30,7 @@ hibob_url = f"https://api.hibob.com/v1/timeoff/whosout?from={current_date}&to={c
 
 # Get arguments from pwsh and json
 GOOGLE_SHEET_ID = sys.argv[1]
-USERS_FILE = r"$AutomationPath\Audit\JumpCloudData.json"
+USERS_FILE = r"{AUTOMATION_PATH}\Audit\JumpCloudData.json"
 
 with open(USERS_FILE, "r", encoding="utf-8") as file:
     users = json.load(file)
