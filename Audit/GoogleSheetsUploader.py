@@ -7,8 +7,8 @@ from gspread_formatting import *
 from gspread.utils import rowcol_to_a1
 
 # Google Sheets API Variable
-AutomationPath = "C:\Scripts\" # Absolute path to the automation
-SERVICE_ACCOUNT_FILE = r"$AutomationPath\Credentials\service_account.json"
+AUTOMATION_PATH = r"C:\Scripts" # Absolute path to the automation
+SERVICE_ACCOUNT_FILE = os.path.join(AUTOMATION_PATH, "Credentials", "service_account.json")
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 client = gspread.authorize(creds)
@@ -16,7 +16,7 @@ client = gspread.authorize(creds)
 # Read input arguments from pwsh and json
 GOOGLE_SHEET_ID = sys.argv[1]
 TAB_NAME = f"JumpCloud Report {datetime.today().strftime('%Y%m%d%H%M')}"
-USERS_FILE = r"$AutomationPath\Audit\JumpCloudData.json"
+USERS_FILE = os.path.join(AUTOMATION_PATH, "Audit", "JumpCloudData.json")
 
 # Read JC Data from json
 with open(USERS_FILE, "r", encoding="utf-8") as file:
