@@ -1,0 +1,92 @@
+pipeline {
+    agent any
+
+    environment {
+        PYTHON = 'python'
+        SCRIPT_DIR = 'python'
+        PS_SCRIPT = 'powershell\\JumpCloudAudit.ps1'
+        SLACK_MESSAGE = 'JumpCloud Offline Device Audit completed.'
+        SLACK_TAGS = '<@jumpcloud_team>'
+        IGNORE_TAB_NAME = 'Ignore List'
+    }
+
+    stages {
+        stage('Checkout Repository') {
+            steps {
+                git 'https://github.com/Kennykait/JC-Offline-Device-Audit/tree/jenkins-fork'
+            }
+        }
+
+        stage('Install Python Dependencies') {
+            steps {
+                bat "${env.PYTHON} -m pip install -r requirements.txt"
+            }
+        }
+
+        stage('Fetch Ignore List') {
+            steps {
+                withCredentials([
+                    file(credentialsId: 'google-service-account', variable: 'GOOGLE_CREDS'),
+                    string(credentialsId: 'google-sheet-id', variable: 'GOOGLE_SHEET_ID')
+                ]) {
+                    bat "${env.PYTHON} python\GoogleSheetsIgnoreFetcher.py %GOOGLE_SHEET_ID% "%IGNORE_TAB_NAME%" --creds %GOOGLE_CREDS%"
+                }
+            }
+        }
+
+        stage('Run PowerShell Audit') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'jumpcloud-api-key', variable: 'JUMPCLOUD_API_KEY'),
+                    string(credentialsId: 'slack-webhook-url', variable: 'SLACK_WEBHOOK'),
+                    string(credentialsId: 'google-sheet-id', variable: 'GOOGLE_SHEET_ID'),
+                    string(credentialsId: 'HIBOB_SERVICE_USER_ID', variable: 'HIBOB_SERVICE_USER_ID'),
+                    string(credentialsId: 'HIBOB_API_TOKEN', variable: 'HIBOB_API_TOKEN')
+                ]) {
+                    powershell '''
+                        $env:JUMPCLOUD_API_KEY = "${env:JUMPCLOUD_API_KEY}"
+                        $env:SLACK_WEBHOOK = "${env:SLACK_WEBHOOK}"
+                        $env:GOOGLE_SHEET_ID = "${env:GOOGLE_SHEET_ID}"
+                        $env:SLACK_MESSAGE = "${env:SLACK_MESSAGE}"
+                        $env:SLACK_TAGS = "${env:SLACK_TAGS}"
+                        $env:IGNORE_TAB_NAME = "${env:IGNORE_TAB_NAME}"
+                        $env:HIBOB_SERVICE_USER_ID = "${env:HIBOB_SERVICE_USER_ID}"
+                        $env:HIBOB_API_TOKEN = "${env:HIBOB_API_TOKEN}"
+                        .\${PS_SCRIPT}
+                    '''
+                }
+            }
+        }
+
+        stage('Fetch Vacation Data') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'HIBOB_SERVICE_USER_ID', variable: 'HIBOB_SERVICE_USER_ID'),
+                    string(credentialsId: 'HIBOB_API_TOKEN', variable: 'HIBOB_API_TOKEN')
+                ]) {
+                    bat "${env.PYTHON} python\HiBobFetcher.py"
+                }
+            }
+        }
+
+        stage('Upload to Google Sheets') {
+            steps {
+                withCredentials([
+                    file(credentialsId: 'google-service-account', variable: 'GOOGLE_CREDS'),
+                    string(credentialsId: 'google-sheet-id', variable: 'GOOGLE_SHEET_ID')
+                ]) {
+                    bat "${env.PYTHON} python\GoogleSheetsUploader.py %GOOGLE_SHEET_ID% "JumpCloud Report %BUILD_NUMBER%" --creds %GOOGLE_CREDS%"
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ JumpCloud audit completed successfully."
+        }
+        failure {
+            echo "❌ Pipeline failed. See logs."
+        }
+    }
+}

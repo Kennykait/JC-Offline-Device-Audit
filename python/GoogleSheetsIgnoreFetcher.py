@@ -1,37 +1,24 @@
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 import sys
+import gspread
 import json
-import os
+from google.oauth2.service_account import Credentials
 
-sys.stdout.reconfigure(encoding='utf-8')
+# Arguments from Jenkins pipeline
+if len(sys.argv) != 3:
+    print("Usage: python GoogleSheetsIgnoreFetcher.py <GoogleSheetID> <IgnoreTabName>")
+    sys.exit(1)
 
-# Pass Google Sheet ID and Name as arguments from PWSH
-GOOGLE_SHEET_ID = sys.argv[1]  # Google Sheet ID from PowerShell
-IGNORE_TAB_NAME = sys.argv[2]  # Tab Name for Ignore List
+sheet_id = sys.argv[1]
+ignore_tab = sys.argv[2]
 
-# GCP Service Account json
-AUTOMATION_PATH = r"C:\Scripts" # Absolute path to the automation
-SERVICE_ACCOUNT_FILE = os.path.join(AUTOMATION_PATH, "Credentials", "service_account.json")
-IGNORE_LIST_FILE = os.path.join(AUTOMATION_PATH, "Audit", "IgnoreList.json")
+SERVICE_ACCOUNT_FILE = 'secrets/service_account.json'
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 
-# Google Sheets API Authentication
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, scope)
 client = gspread.authorize(creds)
-
-# Open the Sheet and navigate to the Ignore List tab
-sheet = client.open_by_key(GOOGLE_SHEET_ID)
-worksheet = sheet.worksheet(IGNORE_TAB_NAME)
-
-# Read the ignore list (Assuming "DeviceName" is in the first column)
-ignore_data = worksheet.col_values(1)  # Reads all values in column A
-
-# Remove header (assuming first row is "DeviceName")
-ignore_data = ignore_data[1:]  # Skips the header
-
-# Save ignore list to JSON file
-with open(IGNORE_LIST_FILE, "w", encoding="utf-8") as file:
-    json.dump({"DeviceName": ignore_data}, file, indent=4)
-
-print(f"✅ Ignore list saved to {IGNORE_LIST_FILE}")
+sheet = client.open_by_key(sheet_id)
+worksheet = sheet.worksheet(ignore_tab)
+device_names = worksheet.col_values(1)[1:]  # Skip header
+with open('IgnoreList.json', 'w', encoding='utf-8') as f:
+    json.dump({'DeviceName': device_names}, f, indent=4)
+print(f"Ignore list fetched: {len(device_names)} devices.")

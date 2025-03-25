@@ -1,23 +1,43 @@
-# JumpCloud & HiBob Audit Automation
+# JumpCloud Offline Device Audit (Jenkins-Optimized)
 
-This branch should be used only for Jenkins. For script usage see the main branch.
+This project performs a full audit of JumpCloud systems to identify inactive devices, user binding status, and vacation information pulled from HiBob. The results are formatted and uploaded to Google Sheets and shared via Slack.
+NOTE : This branch should be used only for Jenkins. For script usage see the main branch.
+
+---
+
+## 🔧 Features
+
+- Detects inactive JumpCloud devices (offline >16 days)
+- Gathers bound user info (email, status, user ID)
+- Integrates HiBob time off data
+- Google Sheets report with formatting
+- Slack notifications with report link
+- Jenkins pipeline ready
+
+---
 
 ## 🔧 Jenkins Pipeline Setup
 
-### Required Jenkins Credentials:
-| ID                     | Description                    |
-|------------------------|--------------------------------|
-| `google-sheet-id`      | Google Sheets doc ID           |
-| `jumpcloud-api-key`    | JumpCloud API Key              |
-| `slack-webhook-url`    | Slack Incoming Webhook URL     |
-| `HIBOB_SERVICE_USER_ID`| HiBob service account ID       |
-| `HIBOB_API_TOKEN`      | HiBob service account token    |
+---
+
+## 🔐 Jenkins Credentials
+
+Add these in **Jenkins → Manage Jenkins → Credentials**:
+
+| ID                       | Type          | Description                              |
+|--------------------------|---------------|------------------------------------------|
+| `google-sheet-id`        | Secret Text   | Your Google Sheet ID                     |
+| `google-service-account` | Secret File   | Your service_account.json file           |
+| `jumpcloud-api-key`      | Secret Text   | JumpCloud API Key                        |
+| `slack-webhook-url`      | Secret Text   | Slack webhook URL                        |
+| `HIBOB_SERVICE_USER_ID`  | Secret Text   | HiBob Service User ID                    |
+| `HIBOB_API_TOKEN`        | Secret Text   | HiBob API Token                          |
 
 ### Required Environment Variables:
 | Name             | Example Value                    |
 |------------------|----------------------------------|
 | `IGNORE_TAB_NAME`| Ignore List                      |
-| `SLACK_MESSAGE`  | JumpCloud Offline Audit Completed |
+| `SLACK_MESSAGE`  | JumpCloud Offline Audit Completed|
 | `SLACK_TAGS`     | <@jumpcloud_team>                |
 
 ---
@@ -33,6 +53,10 @@ This branch should be used only for Jenkins. For script usage see the main branc
 
 ---
 
-### Trigger via Jenkins:
-```groovy
-powershell.exe -ExecutionPolicy Bypass -File C:\Scripts\Audit\powershell\RunJumpCloudAudit.ps1
+## 📌 Notes
+
+- The service account file is handled securely via Jenkins **Secret File** credential.
+- Python scripts support command-line arguments for Jenkins compatibility.
+- The `GoogleSheetsUploader.py` script accepts `--creds` argument to specify injected file path.
+
+---

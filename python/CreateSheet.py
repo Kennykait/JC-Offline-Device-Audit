@@ -1,56 +1,77 @@
+import sys
 import gspread
-from googleapiclient.discovery import build
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
+from gspread_formatting import *
 
-# Variables
-AUTOMATION_PATH = r"C:\Scripts" # Absolute path to the automation
-SERVICE_ACCOUNT_FILE = os.path.join(AUTOMATION_PATH, "Credentials", "service_account.json")
-USER_EMAIL = "admin@gmail.com"  # Your email (To send an invitation
+if len(sys.argv) != 3:
+    print("Usage: python CreateGoogleSheet.py <SheetTitle> <ShareWithEmail>")
+    sys.exit(1)
 
-# Google API Scopes for Sheet creation.
-SCOPES = [
-    "https://spreadsheets.google.com/feeds",
-    "https://www.googleapis.com/auth/drive"
-]
+sheet_title = sys.argv[1]
+share_email = sys.argv[2]
 
-# Google API Authentication
-creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, SCOPES)
+SERVICE_ACCOUNT_FILE = 'secrets/service_account.json'
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 client = gspread.authorize(creds)
 
-#New Google Sheet Creation
-spreadsheet = client.create("JumpCloud Audit Report")
-spreadsheet_id = spreadsheet.id  # Get the new spreadsheet ID
+# Create sheet and share it
+sheet = client.create(sheet_title)
+sheet.share(share_email, perm_type='user', role='writer', notify=False)
 
-print(f"✅ Google Sheet Created: {spreadsheet.url}")
+# Setup the default worksheet
+worksheet = sheet.get_worksheet(0)
+headers = [
+    "Hostname",
+    "Device ID",
+    "OS",
+    "Last Contact",
+    "Offline Days",
+    "User Emails",
+    "UserID",
+    "Account Status",
+    "In Vacation",
+    "In Vacation Until"
+]
+worksheet.update("A1:K1", [headers])
 
-# Invite your user as an editor
-drive_service = build("drive", "v3", credentials=creds)
-permission = {
-    "type": "user",
-    "role": "writer",
-    "emailAddress": USER_EMAIL
-}
-drive_service.permissions().create(
-    fileId=spreadsheet_id,
-    body=permission,
-    transferOwnership=False
-).execute()
+# Freeze the first row
+set_frozen(worksheet, rows=1)
 
-print(f"✅ Shared Google Sheet with {USER_EMAIL} as Editor")
+# Format the header row
+header_fmt = CellFormat(
+    textFormat=textFormat(bold=True),
+    backgroundColor=Color(0.86, 0.87, 0.89)
+)
+format_cell_range(worksheet, '1:1', header_fmt)
 
-# Transfer ownership of Sheet
-ownership_permission = {
-    "type": "user",
-    "role": "owner",
-    "emailAddress": USER_EMAIL
-}
-drive_service.permissions().create(
-    fileId=spreadsheet_id,
-    body=ownership_permission,
-    transferOwnership=True
-).execute()
+# Resize columns to fit content
+for col_index in range(1, len(headers) + 1):
+    set_column_width(worksheet, col_index, 220)
 
-print(f"✅ Ownership Transferred to {USER_EMAIL}")
+# Setup conditional formatting
+rules = get_conditional_format_rules(worksheet)
+rules.clear()
 
-# Output Google Sheet ID
-print(f"📌 Use this Sheet ID in your scripts: {spreadsheet_id}")
+# Highlight 'None' in User Emails (F) and UserID (G)
+rules.add(ConditionalFormatRule(
+    ranges=[GridRange(sheetId=worksheet.id, startRowIndex=1, endRowIndex=1000, startColumnIndex=5, endColumnIndex=7)],
+    booleanRule=BooleanRule(
+        condition=BooleanCondition('TEXT_EQ', ['None']),
+        format=CellFormat(backgroundColor=Color(1, 1, 0))
+    )
+))
+
+# Highlight 'Suspended' in Account Status (H)
+rules.add(ConditionalFormatRule(
+    ranges=[GridRange(sheetId=worksheet.id, startRowIndex=1, endRowIndex=1000, startColumnIndex=7, endColumnIndex=8)],
+    booleanRule=BooleanRule(
+        condition=BooleanCondition('TEXT_EQ', ['Suspended']),
+        format=CellFormat(textFormat=textFormat(foregroundColor=Color(1, 0, 0), bold=True))
+    )
+))
+
+rules.save()
+
+print(f"✅ Created and formatted Google Sheet: {sheet.title}")
+print(f"📄 URL: {sheet.url}")
