@@ -73,5 +73,5 @@ rules.add(ConditionalFormatRule(
 
 rules.save()
 
-print(f"✅ Created and formatted Google Sheet: {sheet.title}")
-print(f"📄 URL: {sheet.url}")
+print(f"Created and formatted Google Sheet: {sheet.title}")
+print(f"URL: {sheet.url}")

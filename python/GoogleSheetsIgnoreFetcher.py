@@ -23,4 +23,4 @@ ignore_json = [{"DeviceName": name} for name in ignore_data]
 with open("C:/Scripts/NordSec/Audit/IgnoreList.json", "w", encoding="utf-8") as f:
     json.dump(ignore_json, f, indent=2)
 
-print(f"✅ Ignore list saved with {len(ignore_data)} entries.")
+print(f"Ignore list saved with {len(ignore_data)} entries.")
