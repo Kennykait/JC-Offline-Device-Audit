@@ -1,52 +1,19 @@
-# Variables
-$APIKey = "KEY" #JC Api Key used to authenticate to pwsh
-$AutomationPath = "C:\Scripts\" # Absolute path to the automation
-$CSVOutput = "$AutomationPath\Audit\JumpCloud_InactiveDevices.csv" # Path to store CSV reports locally
-$LogFolderPath = "$AutomationPath\Audit\Logs" # Log Folder absolute path
-$LogFileName = "Audit-$(Get-Date -Format 'yyyyMMdd').txt" # Log filename
-$LogFilePath = Join-Path -Path $LogFolderPath -ChildPath $LogFileName #Log file path using the absolute log  path
-$PythonPath = "python.exe" # the symlink does not always work for python, so i found out that giving the path to python solves this issue
-$HiBobFetcher = "$AutomationPath\Audit\HiBobFetcher.py" # HiBobFetcher path
-$GoogleSheetsUploader = "$AutomationPath\Audit\GoogleSheetsUploader.py" #GoogleSheetsUploader path
-$GoogleSheetID = "SHEET_ID"  #  Google Sheet ID for storing the report
-$GoogleSheetTabName = "JumpCloud Report $(Get-Date -Format 'yyyyMMddHHmm')" # Generates a new teb with current date
-$GoogleIgnoreTabName = "Ignore List"
-$IgnoreListPath = "$AutomationPath\Audit\IgnoreList.json"
-$GoogleScriptPath = "$AutomationPath\Audit\GoogleSheetsIgnoreFetcher.py"
-$SlackWebhookURL = "webhook_url"  # Slack WebHook URL
-$SlackChannel = "#channel_name"  # Channel name where to post the message
-$SlackUserTags = "<@user_id>"  # User ID who to mention in channel
+$ThresholdDate = (Get-Date).AddDays(-16)
+$CurrentDate = Get-Date
+$DeviceReport = @()
 
-# Ensure log directory exists
-if (!(Test-Path $LogFolderPath)) {
-    New-Item -ItemType Directory -Path $LogFolderPath -Force | Out-Null
-}
-# Connect to JC
-Connect-JCOnline -JumpCloudAPIKey $APIKey -Force
-
-$SlackStartMessage = @{
-    text = ":rocket: *JumpCloud Device Audit* has started running in Jenkins!"
-    channel = $SlackChannel
-}
-Invoke-RestMethod -Uri $SlackWebhookURL -Method Post -Body ($SlackStartMessage | ConvertTo-Json -Depth 3) -ContentType "application/json"
-
-Start-Process -FilePath $PythonPath -ArgumentList "$GoogleScriptPath $GoogleSheetID $GoogleIgnoreTabName" -NoNewWindow -Wait
-
-# Read Ignore List
 $IgnoreList = @()
 if (Test-Path $IgnoreListPath) {
     $IgnoreList = Get-Content -Path $IgnoreListPath | ConvertFrom-Json | Select-Object -ExpandProperty DeviceName
+    Write-Log "Loaded ignore list with $($IgnoreList.Count) entries."
 }
 
-# Query all devices from JC
 $Devices = Get-JCSystem
-$DeviceReport = @()
 
 foreach ($Device in $Devices) {
     $DeviceName = if ($Device.hostname) { $Device.hostname } else { $Device.displayName }
-    $Architecture = if ($Device.os) { $Device.os } else { "Unknown" }
-
     if ($IgnoreList -contains $DeviceName) {
+        Write-Log "Skipping $DeviceName (ignored)"
         continue
     }
 
@@ -60,30 +27,24 @@ foreach ($Device in $Devices) {
         continue
     }
 
-    $ThresholdDate = (Get-Date).AddDays(-16)
     if ($LastContact -gt $ThresholdDate) {
         continue
     }
 
-    $DaysOffline = ((Get-Date) - $LastContact).Days
+    $DaysOffline = ($CurrentDate - $LastContact).Days
+    $Architecture = if ($Device.os) { $Device.os } else { "Unknown" }
 
     $BoundUsers = Get-JCSystemUser -SystemID $Device.id
     $UserEmails = @()
     $UserStatuses = @()
     $UserIDs = @()
 
-    if ($BoundUsers.Count -eq 0) {
-        $UserEmails = "None"
-        $UserStatuses = "None"
-        $UserIDs = "None"
-    } else {
-        foreach ($BoundUser in $BoundUsers) {
-            if (-not [string]::IsNullOrEmpty($BoundUser.Username)) {
-                $UserDetails = Get-JCUser -Username $BoundUser.Username
-                $UserEmails += $UserDetails.email
-                $UserStatuses += if ($UserDetails.suspended) { "Suspended" } else { "Active" }
-                $UserIDs += $UserDetails.id
-            }
+    foreach ($BoundUser in $BoundUsers) {
+        if (-not [string]::IsNullOrEmpty($BoundUser.Username)) {
+            $UserDetails = Get-JCUser -Username $BoundUser.Username
+            $UserEmails += $UserDetails.email
+            $UserStatuses += (if ($UserDetails.suspended) { "Suspended" } else { "Active" })
+            $UserIDs += $UserDetails.id
         }
     }
 
@@ -97,28 +58,14 @@ foreach ($Device in $Devices) {
         "Architecture"     = $Architecture
         "LastContact"      = $LastContact
         "Days Offline"     = $DaysOffline
-        "BoundUserEmails"  = $UserEmailsString
+        "User Emails"      = $UserEmailsString
         "UserID"           = $UserIDsString
-        "BoundUserStatuses" = $UserStatusesString
+        "Account Status"   = $UserStatusesString
     }
+
+    Write-Log "Processed $DeviceName ($DaysOffline days offline)"
 }
 
-# Write to python
-$DeviceReportJson = $DeviceReport | ConvertTo-Json -Depth 3
-$DeviceReportJson | Out-File -FilePath "$AutomationPath\Audit\JumpCloudData.json" -Encoding UTF8
-
-# Run HiBob API Fetcher
-Start-Process -FilePath $PythonPath -ArgumentList "$HiBobFetcher $GoogleSheetID" -NoNewWindow -Wait
-
-# Run Google Sheets Uploader
-Start-Process -FilePath $PythonPath -ArgumentList "$GoogleSheetsUploader $GoogleSheetID `"$GoogleSheetTabName`"" -NoNewWindow -Wait
-
-# Slack Notification
-$GoogleSheetURL = "https://docs.google.com/spreadsheets/d/$GoogleSheetID"
-$SlackFinalMessage = @{
-    text = ":white_check_mark: *JumpCloud Device Audit* completed! Report added to Google Sheets: <$GoogleSheetURL> $SlackUserTags"
-    channel = $SlackChannel
-}
-Invoke-RestMethod -Uri $SlackWebhookURL -Method Post -Body ($SlackFinalMessage | ConvertTo-Json -Depth 3) -ContentType "application/json"
-
-Write-Host "JumpCloud audit completed successfully."
+# Write audit data to JSON
+$DeviceReport | ConvertTo-Json -Depth 4 | Out-File -FilePath $JumpCloudJson -Encoding UTF8
+Write-Log "Audit data written to $JumpCloudJson"
