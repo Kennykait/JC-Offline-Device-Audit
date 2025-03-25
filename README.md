@@ -35,4 +35,4 @@ This branch should be used only for Jenkins. For script usage see the main branc
 
 ### Trigger via Jenkins:
 ```groovy
-powershell.exe -ExecutionPolicy Bypass -File C:\Scripts\NordSec\Audit\powershell\RunJumpCloudAudit.ps1
+powershell.exe -ExecutionPolicy Bypass -File C:\Scripts\Audit\powershell\RunJumpCloudAudit.ps1
