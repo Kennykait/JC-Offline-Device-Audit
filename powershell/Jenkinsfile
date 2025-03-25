@@ -4,16 +4,16 @@ pipeline {
     environment {
         PYTHON = 'python'
         SCRIPT_DIR = 'python'
-        PS_SCRIPT = 'powershell\\JumpCloudAudit.ps1'
+        PS_SCRIPT = 'powershell/RunJumpCloudAudit.ps1'
         SLACK_MESSAGE = 'JumpCloud Offline Device Audit completed.'
         SLACK_TAGS = '<@jumpcloud_team>'
-        IGNORE_TAB_NAME = 'Ignore List'
+        IGNORE_TAB_NAME = 'Ignore'
     }
 
     stages {
         stage('Checkout Repository') {
             steps {
-                git 'https://github.com/Kennykait/JC-Offline-Device-Audit/tree/jenkins-fork'
+                git 'https://github.com/Kennykait/JC-Offline-Device-Audit/tree/jenkins-fork.git'
             }
         }
 
@@ -29,7 +29,7 @@ pipeline {
                     file(credentialsId: 'google-service-account', variable: 'GOOGLE_CREDS'),
                     string(credentialsId: 'google-sheet-id', variable: 'GOOGLE_SHEET_ID')
                 ]) {
-                    bat "${env.PYTHON} python\GoogleSheetsIgnoreFetcher.py %GOOGLE_SHEET_ID% "%IGNORE_TAB_NAME%" --creds %GOOGLE_CREDS%"
+                    bat "${env.PYTHON} python/GoogleSheetsIgnoreFetcher.py %GOOGLE_SHEET_ID% "%IGNORE_TAB_NAME%" --creds %GOOGLE_CREDS%"
                 }
             }
         }
@@ -52,7 +52,7 @@ pipeline {
                         $env:IGNORE_TAB_NAME = "${env:IGNORE_TAB_NAME}"
                         $env:HIBOB_SERVICE_USER_ID = "${env:HIBOB_SERVICE_USER_ID}"
                         $env:HIBOB_API_TOKEN = "${env:HIBOB_API_TOKEN}"
-                        .\${PS_SCRIPT}
+                        ./${PS_SCRIPT}
                     '''
                 }
             }
@@ -64,7 +64,7 @@ pipeline {
                     string(credentialsId: 'HIBOB_SERVICE_USER_ID', variable: 'HIBOB_SERVICE_USER_ID'),
                     string(credentialsId: 'HIBOB_API_TOKEN', variable: 'HIBOB_API_TOKEN')
                 ]) {
-                    bat "${env.PYTHON} python\HiBobFetcher.py"
+                    bat "${env.PYTHON} python/HiBobFetcher.py"
                 }
             }
         }
@@ -75,7 +75,7 @@ pipeline {
                     file(credentialsId: 'google-service-account', variable: 'GOOGLE_CREDS'),
                     string(credentialsId: 'google-sheet-id', variable: 'GOOGLE_SHEET_ID')
                 ]) {
-                    bat "${env.PYTHON} python\GoogleSheetsUploader.py %GOOGLE_SHEET_ID% "JumpCloud Report %BUILD_NUMBER%" --creds %GOOGLE_CREDS%"
+                    bat "${env.PYTHON} python/GoogleSheetsUploader.py %GOOGLE_SHEET_ID% "JumpCloud Report %BUILD_NUMBER%" --creds %GOOGLE_CREDS%"
                 }
             }
         }
