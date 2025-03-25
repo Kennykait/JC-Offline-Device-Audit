@@ -1,24 +1,26 @@
 import sys
+import argparse
 import gspread
-import json
 from google.oauth2.service_account import Credentials
+import json
 
-# Arguments from Jenkins pipeline
-if len(sys.argv) != 3:
-    print("Usage: python GoogleSheetsIgnoreFetcher.py <GoogleSheetID> <IgnoreTabName>")
-    sys.exit(1)
+parser = argparse.ArgumentParser()
+parser.add_argument("sheet_id", help="Google Sheet ID")
+parser.add_argument("ignore_tab", help="Ignore List tab name")
+parser.add_argument("--creds", default="secrets/service_account.json", help="Path to service account file")
+args = parser.parse_args()
 
-sheet_id = sys.argv[1]
-ignore_tab = sys.argv[2]
-
-SERVICE_ACCOUNT_FILE = 'secrets/service_account.json'
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
-creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+creds = Credentials.from_service_account_file(args.creds, scopes=SCOPES)
 client = gspread.authorize(creds)
-sheet = client.open_by_key(sheet_id)
-worksheet = sheet.worksheet(ignore_tab)
-device_names = worksheet.col_values(1)[1:]  # Skip header
-with open('IgnoreList.json', 'w', encoding='utf-8') as f:
-    json.dump({'DeviceName': device_names}, f, indent=4)
-print(f"Ignore list fetched: {len(device_names)} devices.")
+
+sheet = client.open_by_key(args.sheet_id)
+worksheet = sheet.worksheet(args.ignore_tab)
+ignore_data = worksheet.col_values(1)[1:]  # Skip header
+
+# Save to JSON file for PowerShell to consume
+ignore_json = [{"DeviceName": name} for name in ignore_data]
+with open("C:/Scripts/NordSec/Audit/IgnoreList.json", "w", encoding="utf-8") as f:
+    json.dump(ignore_json, f, indent=2)
+
+print(f"✅ Ignore list saved with {len(ignore_data)} entries.")
